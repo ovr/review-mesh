@@ -4,6 +4,7 @@ import type { CrossValidation, AgentReview, ReasoningStep, CrossValidationItem }
 import type { DiscussionTopic } from "../../discussion/types";
 import { AgentBadge } from "../shared/agent-badge";
 import { AgreementIndicator } from "../shared/agreement-indicator";
+import { severityRank } from "../../utils/severity";
 
 interface CrossValidationViewProps {
   review: AgentReview | undefined;
@@ -42,6 +43,7 @@ export function CrossValidationView({
       items.push({ kind: "additional", step: finding });
     }
 
+    items.sort((a, b) => severityRank(b.step.severity) - severityRank(a.step.severity));
     return items;
   }, [crossValidation, review, stepsById]);
 
@@ -77,9 +79,6 @@ export function CrossValidationView({
     );
   }
 
-  // Track which selectable index we're rendering
-  let selectableIdx = 0;
-
   return (
     <scrollbox focused flexGrow={1} width="100%" scrollY padding={1}>
       <box flexDirection="row" gap={2} alignItems="center" marginBottom={1}>
@@ -106,87 +105,75 @@ export function CrossValidationView({
         </text>
       </box>
 
-      {crossValidation.items.map((item) => {
-        const origStep = stepsById.get(item.stepRef);
-        const isFocused = origStep ? selectableIdx === focusedIndex : false;
-        if (origStep) selectableIdx++;
+      {selectableItems.map((item, idx) => {
+        const isFocused = idx === focusedIndex;
+
+        if (item.kind === "validation") {
+          const { step, validationItem } = item;
+          return (
+            <box
+              key={`v-${validationItem.stepRef}`}
+              flexDirection="column"
+              padding={1}
+              marginBottom={1}
+              borderStyle="rounded"
+              border
+              borderColor={isFocused ? "#7C3AED" : validationItem.agrees ? "#065F46" : "#7F1D1D"}
+              width="100%"
+            >
+              <box flexDirection="row" gap={1} alignItems="center">
+                <text fg={validationItem.agrees ? "#10B981" : "#EF4444"} attributes={1}>
+                  {validationItem.agrees ? "✓ AGREE" : "✗ DISAGREE"}
+                </text>
+                <text fg="#6B7280">Step #{validationItem.stepRef}</text>
+                <text fg="#E5E7EB" attributes={1}>
+                  {step.title}
+                </text>
+              </box>
+
+              <text fg="#9CA3AF" marginTop={1} wrapMode="word">
+                Original: {step.content.slice(0, 200)}
+                {step.content.length > 200 ? "..." : ""}
+              </text>
+
+              <text fg="#D1D5DB" marginTop={1} wrapMode="word">
+                Validator: {validationItem.reasoning}
+              </text>
+            </box>
+          );
+        }
+
+        const { step } = item;
         return (
           <box
-            key={item.stepRef}
+            key={`a-${step.stepNumber}`}
             flexDirection="column"
             padding={1}
             marginBottom={1}
             borderStyle="rounded"
             border
-            borderColor={isFocused ? "#7C3AED" : item.agrees ? "#065F46" : "#7F1D1D"}
+            borderColor={isFocused ? "#7C3AED" : "#92400E"}
             width="100%"
           >
-            <box flexDirection="row" gap={1} alignItems="center">
-              <text fg={item.agrees ? "#10B981" : "#EF4444"} attributes={1}>
-                {item.agrees ? "✓ AGREE" : "✗ DISAGREE"}
+            <box flexDirection="row" gap={1}>
+              <text fg="#F59E0B" attributes={1}>
+                [ADDITIONAL] [{step.category.toUpperCase()}]
               </text>
-              <text fg="#6B7280">Step #{item.stepRef}</text>
-              {origStep && (
-                <text fg="#E5E7EB" attributes={1}>
-                  {origStep.title}
-                </text>
-              )}
+              <text fg="#E5E7EB" attributes={1}>
+                {step.title}
+              </text>
             </box>
-
-            {origStep && (
-              <text fg="#9CA3AF" marginTop={1} wrapMode="word">
-                Original: {origStep.content.slice(0, 200)}
-                {origStep.content.length > 200 ? "..." : ""}
+            <text fg="#D1D5DB" marginTop={1} wrapMode="word">
+              {step.content}
+            </text>
+            {step.relatedFiles.length > 0 && (
+              <text fg="#818CF8" marginTop={1}>
+                Files: {step.relatedFiles.join(", ")}
               </text>
             )}
-
-            <text fg="#D1D5DB" marginTop={1} wrapMode="word">
-              Validator: {item.reasoning}
-            </text>
           </box>
         );
       })}
-
-      {crossValidation.additionalFindings.length > 0 && (
-        <box flexDirection="column" marginTop={1}>
-          <text fg="#F59E0B" attributes={1} marginBottom={1}>
-            Additional Findings (missed by original reviewer)
-          </text>
-          {crossValidation.additionalFindings.map((finding) => {
-            const isFocused = selectableIdx === focusedIndex;
-            selectableIdx++;
-            return (
-              <box
-                key={finding.stepNumber}
-                flexDirection="column"
-                padding={1}
-                marginBottom={1}
-                borderStyle="rounded"
-                border
-                borderColor={isFocused ? "#7C3AED" : "#92400E"}
-                width="100%"
-              >
-                <box flexDirection="row" gap={1}>
-                  <text fg="#F59E0B" attributes={1}>
-                    [{finding.category.toUpperCase()}]
-                  </text>
-                  <text fg="#E5E7EB" attributes={1}>
-                    {finding.title}
-                  </text>
-                </box>
-                <text fg="#D1D5DB" marginTop={1} wrapMode="word">
-                  {finding.content}
-                </text>
-                {finding.relatedFiles.length > 0 && (
-                  <text fg="#818CF8" marginTop={1}>
-                    Files: {finding.relatedFiles.join(", ")}
-                  </text>
-                )}
-              </box>
-            );
-          })}
-        </box>
-      )}
 
       {crossValidation.disagreements.length > 0 && (
         <box flexDirection="column" marginTop={1}>

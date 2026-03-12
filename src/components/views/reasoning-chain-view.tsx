@@ -1,7 +1,8 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useMemo } from "react";
 import { useKeyboard } from "@opentui/react";
 import type { ReasoningStep, AgentReview } from "../../storage/types";
 import { AgentBadge } from "../shared/agent-badge";
+import { severityRank } from "../../utils/severity";
 
 interface ReasoningChainViewProps {
   review: AgentReview | undefined;
@@ -69,20 +70,27 @@ function StepCard({ step, isFocused }: { step: ReasoningStep; isFocused: boolean
 export function ReasoningChainView({ review, onSelect }: ReasoningChainViewProps) {
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  const sortedSteps = useMemo(() => {
+    if (!review) return [];
+    return [...review.reasoningChain].sort(
+      (a, b) => severityRank(b.severity) - severityRank(a.severity),
+    );
+  }, [review]);
+
   useKeyboard(
     useCallback(
       (e) => {
-        if (!review || review.reasoningChain.length === 0) return;
+        if (sortedSteps.length === 0) return;
         if (e.name === "up" || e.name === "k") {
           setFocusedIndex((i) => Math.max(0, i - 1));
         } else if (e.name === "down" || e.name === "j") {
-          setFocusedIndex((i) => Math.min(review.reasoningChain.length - 1, i + 1));
+          setFocusedIndex((i) => Math.min(sortedSteps.length - 1, i + 1));
         } else if (e.name === "return" && onSelect) {
-          const step = review.reasoningChain[focusedIndex];
+          const step = sortedSteps[focusedIndex];
           if (step) onSelect(step);
         }
       },
-      [review, focusedIndex, onSelect],
+      [sortedSteps, focusedIndex, onSelect],
     ),
   );
 
@@ -103,7 +111,7 @@ export function ReasoningChainView({ review, onSelect }: ReasoningChainViewProps
         </text>
       </box>
 
-      {review.reasoningChain.map((step, index) => (
+      {sortedSteps.map((step, index) => (
         <StepCard key={step.stepNumber} step={step} isFocused={index === focusedIndex} />
       ))}
     </scrollbox>
