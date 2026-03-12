@@ -66,10 +66,9 @@ describe("CodexAgent", () => {
       const cmd = agent.exposedBuildCommand("some prompt");
       expect(cmd).toEqual([
         "codex",
-        "-q",
+        "exec",
         "--json",
-        "-a",
-        "full-auto",
+        "--full-auto",
         "-m",
         "o4-mini",
       ]);

@@ -18,7 +18,7 @@ export class CodexAgent extends BaseAgent {
   }
 
   protected buildCommand(_prompt: string): string[] {
-    return ["codex", "-q", "--json", "-a", "full-auto", "-m", "o4-mini"];
+    return ["codex", "exec", "--json", "--full-auto", "-m", "o4-mini"];
   }
 
   protected parseOutput(raw: string): AgentResult {
@@ -57,7 +57,7 @@ export class CodexAgent extends BaseAgent {
     const { spawnProcess } = await import("../utils/subprocess");
 
     const result = await spawnProcess({
-      command: ["codex", "-q", "--json", "-a", "full-auto", "-m", "o4-mini"],
+      command: ["codex", "exec", "--json", "--full-auto", "-m", "o4-mini"],
       stdin: prompt,
       timeoutMs: this.config.timeoutMs ?? 300_000,
       env: this.config.env,

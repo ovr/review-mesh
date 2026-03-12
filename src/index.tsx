@@ -43,6 +43,13 @@ Navigation:
     useAlternateScreen: true,
   });
 
+  renderer.on("selection", (selection) => {
+    const text = selection.getSelectedText();
+    if (text) {
+      renderer.copyToClipboardOSC52(text);
+    }
+  });
+
   const root = createRoot(renderer);
   root.render(<App repo={repo} initialPR={prNumber} />);
 }
