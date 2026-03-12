@@ -34,7 +34,7 @@ Built with `@opentui/react` — a React-based terminal UI framework. JSX renders
 
 ### Storage (`src/storage/`)
 
-Sessions persist as JSON files in `~/.simplify-me-review/data/{repo}_{prNumber}/`. All data types are defined as Zod schemas in `src/storage/types.ts` and validated on load.
+Sessions persist as JSON files in `~/.review-mesh/data/{repo}_{prNumber}/`. All data types are defined as Zod schemas in `src/storage/types.ts` and validated on load.
 
 ### GitHub integration (`src/github/`)
 

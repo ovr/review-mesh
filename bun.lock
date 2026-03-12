@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "simplify-me-review",
+      "name": "review-mesh",
       "dependencies": {
         "@opentui/core": "latest",
         "@opentui/react": "latest",

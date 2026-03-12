@@ -8,8 +8,8 @@ interface HeaderProps {
 
 export function Header({ repo, prNumber, prTitle }: HeaderProps) {
   const title = prNumber
-    ? `simplify-me-review — ${repo ?? "local"} #${prNumber}`
-    : "simplify-me-review";
+    ? `review-mesh — ${repo ?? "local"} #${prNumber}`
+    : "review-mesh";
 
   return (
     <box

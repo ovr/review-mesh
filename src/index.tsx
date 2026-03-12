@@ -16,10 +16,10 @@ async function main() {
     } else if ((arg === "-p" || arg === "--pr") && args[i + 1]) {
       prNumber = parseInt(args[++i], 10);
     } else if (arg === "-h" || arg === "--help") {
-      console.log(`simplify-me-review — PR Review TUI with multi-agent cross-validation
+      console.log(`review-mesh — PR Review TUI with multi-agent cross-validation
 
 Usage:
-  simplify-me-review [options]
+  review-mesh [options]
 
 Options:
   -r, --repo <owner/repo>  GitHub repository (default: auto-detect from git)

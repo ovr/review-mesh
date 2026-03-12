@@ -1,7 +1,7 @@
 import { join } from "path";
 import { homedir } from "os";
 
-const BASE_DIR = join(homedir(), ".simplify-me-review");
+const BASE_DIR = join(homedir(), ".review-mesh");
 const DATA_DIR = join(BASE_DIR, "data");
 const LOG_DIR = join(BASE_DIR, "logs");
 
