@@ -1,3 +1,4 @@
+#!/usr/bin/env bun
 import React from "react";
 import { createCliRenderer } from "@opentui/core";
 import { createRoot } from "@opentui/react";

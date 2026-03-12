@@ -2,6 +2,9 @@
   "name": "review-mesh",
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "review-mesh": "src/index.tsx"
+  },
   "scripts": {
     "start": "bun run src/index.tsx",
     "typecheck": "tsc --noEmit",
