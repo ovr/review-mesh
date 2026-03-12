@@ -18,6 +18,22 @@ export interface StreamingSpawnOptions extends SpawnOptions {
   onLine: (line: string) => void;
 }
 
+function createInactivityTimer(
+  timeoutMs: number,
+  onTimeout: () => void,
+): { reset: () => void; clear: () => void } {
+  let timer = setTimeout(onTimeout, timeoutMs);
+  return {
+    reset() {
+      clearTimeout(timer);
+      timer = setTimeout(onTimeout, timeoutMs);
+    },
+    clear() {
+      clearTimeout(timer);
+    },
+  };
+}
+
 export function spawnProcess(opts: SpawnOptions): Promise<SpawnResult> {
   const { command, stdin, timeoutMs = 300_000, env, cwd } = opts;
   const [cmd, ...args] = command;
@@ -32,21 +48,27 @@ export function spawnProcess(opts: SpawnOptions): Promise<SpawnResult> {
     const stdoutChunks: Buffer[] = [];
     const stderrChunks: Buffer[] = [];
 
-    proc.stdout.on("data", (chunk: Buffer) => stdoutChunks.push(chunk));
-    proc.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
-
-    const timer = setTimeout(() => {
+    const inactivityTimer = createInactivityTimer(timeoutMs, () => {
       proc.kill("SIGTERM");
-      reject(new Error(`Process timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
+      reject(new Error(`Process timed out after ${timeoutMs}ms of inactivity`));
+    });
+
+    proc.stdout.on("data", (chunk: Buffer) => {
+      stdoutChunks.push(chunk);
+      inactivityTimer.reset();
+    });
+    proc.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+      inactivityTimer.reset();
+    });
 
     proc.on("error", (err) => {
-      clearTimeout(timer);
+      inactivityTimer.clear();
       reject(err);
     });
 
     proc.on("close", (code) => {
-      clearTimeout(timer);
+      inactivityTimer.clear();
       resolve({
         stdout: Buffer.concat(stdoutChunks).toString("utf-8"),
         stderr: Buffer.concat(stderrChunks).toString("utf-8"),
@@ -78,8 +100,14 @@ export function spawnStreamingProcess(opts: StreamingSpawnOptions): Promise<Spaw
     const stderrChunks: Buffer[] = [];
     let lineBuffer = "";
 
+    const inactivityTimer = createInactivityTimer(timeoutMs, () => {
+      proc.kill("SIGTERM");
+      reject(new Error(`Process timed out after ${timeoutMs}ms of inactivity`));
+    });
+
     proc.stdout.on("data", (chunk: Buffer) => {
       stdoutChunks.push(chunk);
+      inactivityTimer.reset();
       lineBuffer += chunk.toString("utf-8");
       const lines = lineBuffer.split("\n");
       // Keep the last (potentially incomplete) segment in the buffer
@@ -91,20 +119,18 @@ export function spawnStreamingProcess(opts: StreamingSpawnOptions): Promise<Spaw
       }
     });
 
-    proc.stderr.on("data", (chunk: Buffer) => stderrChunks.push(chunk));
-
-    const timer = setTimeout(() => {
-      proc.kill("SIGTERM");
-      reject(new Error(`Process timed out after ${timeoutMs}ms`));
-    }, timeoutMs);
+    proc.stderr.on("data", (chunk: Buffer) => {
+      stderrChunks.push(chunk);
+      inactivityTimer.reset();
+    });
 
     proc.on("error", (err) => {
-      clearTimeout(timer);
+      inactivityTimer.clear();
       reject(err);
     });
 
     proc.on("close", (code) => {
-      clearTimeout(timer);
+      inactivityTimer.clear();
       // Emit any remaining data in the buffer
       if (lineBuffer.length > 0) {
         onLine(lineBuffer);
