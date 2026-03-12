@@ -8,6 +8,11 @@ export type PipelineStatus =
   | "complete"
   | "error";
 
+export interface ToolUseEntry {
+  name: string;
+  context: string;
+}
+
 export interface StreamProgressInfo {
   activity: string;
   turnCount: number;
@@ -15,6 +20,11 @@ export interface StreamProgressInfo {
   costUsd?: number;
   isGenerating: boolean;
   lastToolName?: string;
+  model?: string;
+  textPreview?: string;
+  recentTools: ToolUseEntry[];
+  inputTokens: number;
+  outputTokens: number;
 }
 
 export type PipelineEvent =

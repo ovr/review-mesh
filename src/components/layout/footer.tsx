@@ -2,6 +2,12 @@ import React from "react";
 import type { PipelineState } from "../../pipeline/types";
 import { useElapsedTimer } from "../../hooks/use-elapsed-timer";
 
+function fmtTokens(n: number): string {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+  if (n >= 1_000) return (n / 1_000).toFixed(1) + "k";
+  return String(n);
+}
+
 interface FooterProps {
   activeTab: string;
   pipelineState: PipelineState;
@@ -22,6 +28,7 @@ function useActivityStatus(state: PipelineState): string | null {
         const parts = [`⟳ ${sp.activity}`];
         if (sp.turnCount > 0) parts.push(`T:${sp.turnCount}`);
         if (sp.toolUseCount > 0) parts.push(`Tools:${sp.toolUseCount}`);
+        if (sp.outputTokens > 0) parts.push(`${fmtTokens(sp.outputTokens)}tok`);
         if (sp.costUsd !== undefined) parts.push(`$${sp.costUsd.toFixed(4)}`);
         if (reviewElapsed) parts.push(reviewElapsed);
         return parts.join("  ");
@@ -32,6 +39,7 @@ function useActivityStatus(state: PipelineState): string | null {
         const parts = [`⟳ ${sp.activity}`];
         if (sp.turnCount > 0) parts.push(`T:${sp.turnCount}`);
         if (sp.toolUseCount > 0) parts.push(`Tools:${sp.toolUseCount}`);
+        if (sp.outputTokens > 0) parts.push(`${fmtTokens(sp.outputTokens)}tok`);
         if (crossElapsed) parts.push(crossElapsed);
         return parts.join("  ");
       }

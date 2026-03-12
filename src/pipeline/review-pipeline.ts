@@ -80,6 +80,11 @@ export class ReviewPipeline {
               costUsd: progress.costUsd,
               isGenerating: progress.isGenerating,
               lastToolName: progress.lastToolName,
+              model: progress.model,
+              textPreview: progress.textPreview,
+              recentTools: progress.recentTools,
+              inputTokens: progress.inputTokens,
+              outputTokens: progress.outputTokens,
             },
           });
         }
