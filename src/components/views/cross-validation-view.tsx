@@ -1,17 +1,72 @@
-import React from "react";
-import type { CrossValidation, AgentReview, ReasoningStep } from "../../storage/types";
+import React, { useState, useCallback, useMemo } from "react";
+import { useKeyboard } from "@opentui/react";
+import type { CrossValidation, AgentReview, ReasoningStep, CrossValidationItem } from "../../storage/types";
+import type { DiscussionTopic } from "../../discussion/types";
 import { AgentBadge } from "../shared/agent-badge";
 import { AgreementIndicator } from "../shared/agreement-indicator";
 
 interface CrossValidationViewProps {
   review: AgentReview | undefined;
   crossValidation: CrossValidation | undefined;
+  onSelect?: (topic: DiscussionTopic) => void;
 }
+
+type SelectableItem =
+  | { kind: "validation"; step: ReasoningStep; validationItem: CrossValidationItem }
+  | { kind: "additional"; step: ReasoningStep };
 
 export function CrossValidationView({
   review,
   crossValidation,
+  onSelect,
 }: CrossValidationViewProps) {
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  const stepsById = useMemo(() => {
+    if (!review) return new Map<number, ReasoningStep>();
+    return new Map(review.reasoningChain.map((s) => [s.stepNumber, s]));
+  }, [review]);
+
+  const selectableItems = useMemo<SelectableItem[]>(() => {
+    if (!crossValidation || !review) return [];
+    const items: SelectableItem[] = [];
+
+    for (const item of crossValidation.items) {
+      const origStep = stepsById.get(item.stepRef);
+      if (origStep) {
+        items.push({ kind: "validation", step: origStep, validationItem: item });
+      }
+    }
+
+    for (const finding of crossValidation.additionalFindings) {
+      items.push({ kind: "additional", step: finding });
+    }
+
+    return items;
+  }, [crossValidation, review, stepsById]);
+
+  useKeyboard(
+    useCallback(
+      (e) => {
+        if (selectableItems.length === 0) return;
+        if (e.name === "up" || e.name === "k") {
+          setFocusedIndex((i) => Math.max(0, i - 1));
+        } else if (e.name === "down" || e.name === "j") {
+          setFocusedIndex((i) => Math.min(selectableItems.length - 1, i + 1));
+        } else if (e.name === "return" && onSelect) {
+          const item = selectableItems[focusedIndex];
+          if (!item) return;
+          if (item.kind === "validation") {
+            onSelect({ source: "validation", step: item.step, validationItem: item.validationItem });
+          } else {
+            onSelect({ source: "additional-finding", step: item.step });
+          }
+        }
+      },
+      [selectableItems, focusedIndex, onSelect],
+    ),
+  );
+
   if (!review || !crossValidation) {
     return (
       <box flexGrow={1} justifyContent="center" alignItems="center">
@@ -22,9 +77,8 @@ export function CrossValidationView({
     );
   }
 
-  const stepsById = new Map(
-    review.reasoningChain.map((s) => [s.stepNumber, s]),
-  );
+  // Track which selectable index we're rendering
+  let selectableIdx = 0;
 
   return (
     <scrollbox focused flexGrow={1} width="100%" scrollY padding={1}>
@@ -54,6 +108,8 @@ export function CrossValidationView({
 
       {crossValidation.items.map((item) => {
         const origStep = stepsById.get(item.stepRef);
+        const isFocused = origStep ? selectableIdx === focusedIndex : false;
+        if (origStep) selectableIdx++;
         return (
           <box
             key={item.stepRef}
@@ -62,7 +118,7 @@ export function CrossValidationView({
             marginBottom={1}
             borderStyle="rounded"
             border
-            borderColor={item.agrees ? "#065F46" : "#7F1D1D"}
+            borderColor={isFocused ? "#7C3AED" : item.agrees ? "#065F46" : "#7F1D1D"}
             width="100%"
           >
             <box flexDirection="row" gap={1} alignItems="center">
@@ -96,35 +152,39 @@ export function CrossValidationView({
           <text fg="#F59E0B" attributes={1} marginBottom={1}>
             Additional Findings (missed by original reviewer)
           </text>
-          {crossValidation.additionalFindings.map((finding) => (
-            <box
-              key={finding.stepNumber}
-              flexDirection="column"
-              padding={1}
-              marginBottom={1}
-              borderStyle="rounded"
-              border
-              borderColor="#92400E"
-              width="100%"
-            >
-              <box flexDirection="row" gap={1}>
-                <text fg="#F59E0B" attributes={1}>
-                  [{finding.category.toUpperCase()}]
+          {crossValidation.additionalFindings.map((finding) => {
+            const isFocused = selectableIdx === focusedIndex;
+            selectableIdx++;
+            return (
+              <box
+                key={finding.stepNumber}
+                flexDirection="column"
+                padding={1}
+                marginBottom={1}
+                borderStyle="rounded"
+                border
+                borderColor={isFocused ? "#7C3AED" : "#92400E"}
+                width="100%"
+              >
+                <box flexDirection="row" gap={1}>
+                  <text fg="#F59E0B" attributes={1}>
+                    [{finding.category.toUpperCase()}]
+                  </text>
+                  <text fg="#E5E7EB" attributes={1}>
+                    {finding.title}
+                  </text>
+                </box>
+                <text fg="#D1D5DB" marginTop={1} wrapMode="word">
+                  {finding.content}
                 </text>
-                <text fg="#E5E7EB" attributes={1}>
-                  {finding.title}
-                </text>
+                {finding.relatedFiles.length > 0 && (
+                  <text fg="#818CF8" marginTop={1}>
+                    Files: {finding.relatedFiles.join(", ")}
+                  </text>
+                )}
               </box>
-              <text fg="#D1D5DB" marginTop={1} wrapMode="word">
-                {finding.content}
-              </text>
-              {finding.relatedFiles.length > 0 && (
-                <text fg="#818CF8" marginTop={1}>
-                  Files: {finding.relatedFiles.join(", ")}
-                </text>
-              )}
-            </box>
-          ))}
+            );
+          })}
         </box>
       )}
 

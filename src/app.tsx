@@ -14,6 +14,7 @@ import type { PipelineState } from "./pipeline/types";
 import { ReviewPipeline, reducePipelineState } from "./pipeline/review-pipeline";
 import { CommandInput } from "./components/layout/command-input";
 import { DEFAULT_CLAUDE_EFFORT, type ClaudeEffortLevel } from "./agents/claude-agent";
+import type { DiscussionTopic } from "./discussion/types";
 
 interface AppProps {
   repo?: string;
@@ -32,6 +33,9 @@ export function App({ repo, initialPR }: AppProps) {
   const setCommandInputFocused = useCallback((focused: boolean) => {
     commandInputFocusedRef.current = focused;
   }, []);
+
+  const [discussionTopic, setDiscussionTopic] = useState<DiscussionTopic | null>(null);
+  const [discussionSourceTab, setDiscussionSourceTab] = useState(3);
 
   const activeTab = TAB_OPTIONS[tabIndex]?.value ?? "prs";
 
@@ -54,6 +58,7 @@ export function App({ repo, initialPR }: AppProps) {
 
     setPipelineState({ status: "idle" });
     setTabIndex(1); // Switch to Review tab
+    setDiscussionTopic(null);
 
     try {
       await pipeline.run(pr.number, repo, { claudeEffort });
@@ -93,6 +98,23 @@ export function App({ repo, initialPR }: AppProps) {
     setClaudeEffort(effort);
   }, []);
 
+  const handleReasoningSelect = useCallback((step: ReasoningStep) => {
+    setDiscussionTopic({ source: "reasoning", step });
+    setDiscussionSourceTab(tabIndex);
+    setTabIndex(1); // Switch to Review tab
+  }, [tabIndex]);
+
+  const handleValidationSelect = useCallback((topic: DiscussionTopic) => {
+    setDiscussionTopic(topic);
+    setDiscussionSourceTab(tabIndex);
+    setTabIndex(1); // Switch to Review tab
+  }, [tabIndex]);
+
+  const handleDiscussionClose = useCallback(() => {
+    setDiscussionTopic(null);
+    setTabIndex(discussionSourceTab);
+  }, [discussionSourceTab]);
+
   useKeyboard((key) => {
     if (commandInputFocusedRef.current) return;
     if (key.name === "q" && !key.ctrl && !key.meta) {
@@ -111,6 +133,7 @@ export function App({ repo, initialPR }: AppProps) {
 
   const handlePRSelect = useCallback((pr: PRListItem) => {
     setSelectedPR(pr);
+    setDiscussionTopic(null);
     setTabIndex(1); // Switch to Review tab
   }, []);
 
@@ -129,7 +152,14 @@ export function App({ repo, initialPR }: AppProps) {
           <PRListView repo={repo} onSelect={handlePRSelect} />
         )}
         {activeTab === "review" && (
-          <ReviewView state={pipelineState} selectedPR={selectedPR} claudeEffort={claudeEffort} />
+          <ReviewView
+            state={pipelineState}
+            selectedPR={selectedPR}
+            claudeEffort={claudeEffort}
+            discussionTopic={discussionTopic}
+            onDiscussionClose={handleDiscussionClose}
+            onDiscussionFocusChange={setCommandInputFocused}
+          />
         )}
         {activeTab === "diff" && (
           <DiffView
@@ -151,12 +181,13 @@ export function App({ repo, initialPR }: AppProps) {
           />
         )}
         {activeTab === "reasoning" && (
-          <ReasoningChainView review={pipelineState.review} />
+          <ReasoningChainView review={pipelineState.review} onSelect={handleReasoningSelect} />
         )}
         {activeTab === "validation" && (
           <CrossValidationView
             review={pipelineState.review}
             crossValidation={pipelineState.crossValidation}
+            onSelect={handleValidationSelect}
           />
         )}
         {activeTab === "history" && <HistoryView onSelect={loadSession} />}

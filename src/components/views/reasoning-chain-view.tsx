@@ -1,9 +1,11 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
+import { useKeyboard } from "@opentui/react";
 import type { ReasoningStep, AgentReview } from "../../storage/types";
 import { AgentBadge } from "../shared/agent-badge";
 
 interface ReasoningChainViewProps {
   review: AgentReview | undefined;
+  onSelect?: (step: ReasoningStep) => void;
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -21,7 +23,7 @@ const CATEGORY_ICONS: Record<string, string> = {
   conclusion: "📋",
 };
 
-function StepCard({ step }: { step: ReasoningStep }) {
+function StepCard({ step, isFocused }: { step: ReasoningStep; isFocused: boolean }) {
   const sevColor = SEVERITY_COLORS[step.severity ?? "info"] ?? "#6B7280";
   const icon = CATEGORY_ICONS[step.category] ?? "•";
 
@@ -32,7 +34,7 @@ function StepCard({ step }: { step: ReasoningStep }) {
       marginBottom={1}
       borderStyle="rounded"
       border
-      borderColor="#374151"
+      borderColor={isFocused ? "#7C3AED" : "#374151"}
       width="100%"
     >
       <box flexDirection="row" gap={1} alignItems="center" marginBottom={0}>
@@ -64,7 +66,26 @@ function StepCard({ step }: { step: ReasoningStep }) {
   );
 }
 
-export function ReasoningChainView({ review }: ReasoningChainViewProps) {
+export function ReasoningChainView({ review, onSelect }: ReasoningChainViewProps) {
+  const [focusedIndex, setFocusedIndex] = useState(0);
+
+  useKeyboard(
+    useCallback(
+      (e) => {
+        if (!review || review.reasoningChain.length === 0) return;
+        if (e.name === "up" || e.name === "k") {
+          setFocusedIndex((i) => Math.max(0, i - 1));
+        } else if (e.name === "down" || e.name === "j") {
+          setFocusedIndex((i) => Math.min(review.reasoningChain.length - 1, i + 1));
+        } else if (e.name === "return" && onSelect) {
+          const step = review.reasoningChain[focusedIndex];
+          if (step) onSelect(step);
+        }
+      },
+      [review, focusedIndex, onSelect],
+    ),
+  );
+
   if (!review) {
     return (
       <box flexGrow={1} justifyContent="center" alignItems="center">
@@ -82,8 +103,8 @@ export function ReasoningChainView({ review }: ReasoningChainViewProps) {
         </text>
       </box>
 
-      {review.reasoningChain.map((step) => (
-        <StepCard key={step.stepNumber} step={step} />
+      {review.reasoningChain.map((step, index) => (
+        <StepCard key={step.stepNumber} step={step} isFocused={index === focusedIndex} />
       ))}
     </scrollbox>
   );
