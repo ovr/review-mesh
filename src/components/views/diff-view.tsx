@@ -15,5 +15,9 @@ export function DiffView({ prData }: DiffViewProps) {
     );
   }
 
-  return <DiffDisplay diffContent={prData.diff} />;
+  return (
+    <scrollbox focused flexGrow={1} width="100%" scrollY>
+      <DiffDisplay diffContent={prData.diff} />
+    </scrollbox>
+  );
 }
