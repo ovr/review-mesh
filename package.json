@@ -4,7 +4,9 @@
   "type": "module",
   "scripts": {
     "start": "bun run src/index.tsx",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "test:integration": "bun test tests/integration/"
   },
   "dependencies": {
     "@opentui/core": "latest",
@@ -13,6 +15,7 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.3.10",
     "@types/node": "^22.0.0",
     "@types/react": "^19.0.0",
     "tsx": "^4.19.0",
