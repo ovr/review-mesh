@@ -77,6 +77,24 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
         <StatusLine label="Cross-validation (Codex)" done={crossDone} active={isCrossValidating} startedAt={state.crossValidationStartedAt} completedAt={state.crossValidationCompletedAt} />
       </box>
 
+      {(isReviewing || isCrossValidating) && state.streamProgress && (
+        <box flexDirection="column" marginBottom={1} padding={1} borderStyle="rounded" border borderColor="#7C3AED">
+          <text fg="#7C3AED" attributes={1} marginBottom={0}>Live Progress</text>
+          <box flexDirection="row" gap={2}>
+            <text fg={state.streamProgress.isGenerating ? "#F59E0B" : "#6B7280"}>
+              {state.streamProgress.activity}
+            </text>
+          </box>
+          <box flexDirection="row" gap={2}>
+            <text fg="#9CA3AF">Turns: {state.streamProgress.turnCount}</text>
+            <text fg="#9CA3AF">Tools: {state.streamProgress.toolUseCount}</text>
+            {state.streamProgress.costUsd !== undefined && (
+              <text fg="#9CA3AF">Cost: ${state.streamProgress.costUsd.toFixed(4)}</text>
+            )}
+          </box>
+        </box>
+      )}
+
       {isError && state.error && (
         <box marginTop={1} padding={1} borderStyle="rounded" border borderColor="#EF4444">
           <text fg="#EF4444">{state.error}</text>

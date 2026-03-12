@@ -65,7 +65,25 @@ export class ReviewPipeline {
       const startedAt = new Date().toISOString();
       const startMs = Date.now();
 
-      const result = await claude.review(session.prData!, prompt);
+      let lastProgressEmit = 0;
+      const result = await claude.review(session.prData!, prompt, (progress) => {
+        const now = Date.now();
+        if (now - lastProgressEmit >= 250) {
+          lastProgressEmit = now;
+          this.emit({
+            type: "review-progress",
+            startedAt: now,
+            progress: {
+              activity: progress.activity,
+              turnCount: progress.turnCount,
+              toolUseCount: progress.toolUseCount,
+              costUsd: progress.costUsd,
+              isGenerating: progress.isGenerating,
+              lastToolName: progress.lastToolName,
+            },
+          });
+        }
+      });
 
       review = {
         agentName: claude.config.name,
@@ -142,9 +160,11 @@ export function reducePipelineState(
     case "fetch-error":
       return { ...state, status: "error", error: event.error, fetchCompletedAt: event.startedAt };
     case "review-start":
-      return { ...state, status: "reviewing", currentAgent: event.agentName, reviewStartedAt: event.startedAt };
+      return { ...state, status: "reviewing", currentAgent: event.agentName, reviewStartedAt: event.startedAt, streamProgress: undefined };
+    case "review-progress":
+      return { ...state, streamProgress: event.progress };
     case "review-complete":
-      return { ...state, review: event.review, currentAgent: undefined, reviewCompletedAt: event.startedAt };
+      return { ...state, review: event.review, currentAgent: undefined, reviewCompletedAt: event.startedAt, streamProgress: undefined };
     case "review-error":
       return { ...state, status: "error", error: event.error, reviewCompletedAt: event.startedAt };
     case "cross-validation-start":
@@ -153,13 +173,17 @@ export function reducePipelineState(
         status: "cross-validating",
         currentAgent: event.validatorAgent,
         crossValidationStartedAt: event.startedAt,
+        streamProgress: undefined,
       };
+    case "cross-validation-progress":
+      return { ...state, streamProgress: event.progress };
     case "cross-validation-complete":
       return {
         ...state,
         crossValidation: event.crossValidation,
         currentAgent: undefined,
         crossValidationCompletedAt: event.startedAt,
+        streamProgress: undefined,
       };
     case "cross-validation-error":
       return { ...state, status: "error", error: event.error, crossValidationCompletedAt: event.startedAt };

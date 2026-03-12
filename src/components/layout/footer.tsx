@@ -12,12 +12,29 @@ function useActivityStatus(state: PipelineState): string | null {
   const reviewElapsed = useElapsedTimer(state.reviewStartedAt, state.reviewCompletedAt);
   const crossElapsed = useElapsedTimer(state.crossValidationStartedAt, state.crossValidationCompletedAt);
 
+  const sp = state.streamProgress;
+
   switch (state.status) {
     case "fetching":
       return `⟳ Fetching PR data... ${fetchElapsed ?? ""}`;
     case "reviewing":
+      if (sp) {
+        const parts = [`⟳ ${sp.activity}`];
+        if (sp.turnCount > 0) parts.push(`T:${sp.turnCount}`);
+        if (sp.toolUseCount > 0) parts.push(`Tools:${sp.toolUseCount}`);
+        if (sp.costUsd !== undefined) parts.push(`$${sp.costUsd.toFixed(4)}`);
+        if (reviewElapsed) parts.push(reviewElapsed);
+        return parts.join("  ");
+      }
       return `⟳ Claude reviewing PR... ${reviewElapsed ?? ""}`;
     case "cross-validating":
+      if (sp) {
+        const parts = [`⟳ ${sp.activity}`];
+        if (sp.turnCount > 0) parts.push(`T:${sp.turnCount}`);
+        if (sp.toolUseCount > 0) parts.push(`Tools:${sp.toolUseCount}`);
+        if (crossElapsed) parts.push(crossElapsed);
+        return parts.join("  ");
+      }
       return `⟳ Codex cross-validating... ${crossElapsed ?? ""}`;
     case "complete":
       return "✓ Review complete";
