@@ -14,7 +14,8 @@ import { log } from "../utils/logger";
 
 const CLAUDE_MODEL = "claude-opus-4-6";
 const CLAUDE_MAX_BUDGET_USD = "5.00";
-export const CLAUDE_EFFORT = "medium";
+export const DEFAULT_CLAUDE_EFFORT = "medium";
+export type ClaudeEffortLevel = "low" | "medium" | "high";
 
 const CLAUDE_CONFIG: AgentConfig = {
   name: "claude",
@@ -28,8 +29,11 @@ const CLAUDE_CONFIG: AgentConfig = {
 export type ProgressCallback = (progress: ClaudeStreamProgress) => void;
 
 export class ClaudeAgent extends BaseAgent {
-  constructor() {
+  private effort: ClaudeEffortLevel;
+
+  constructor(effort?: ClaudeEffortLevel) {
     super(CLAUDE_CONFIG);
+    this.effort = effort ?? DEFAULT_CLAUDE_EFFORT;
   }
 
   protected buildCommand(_prompt: string): string[] {
@@ -46,7 +50,7 @@ export class ClaudeAgent extends BaseAgent {
       "--model",
       CLAUDE_MODEL,
       "--effort",
-      CLAUDE_EFFORT,
+      this.effort,
     ];
   }
 
@@ -177,7 +181,7 @@ export class ClaudeAgent extends BaseAgent {
       "--model",
       CLAUDE_MODEL,
       "--effort",
-      CLAUDE_EFFORT,
+      this.effort,
     ];
   }
 

@@ -1,7 +1,7 @@
 import type { ReviewSession, AgentReview } from "../storage/types";
 import type { PipelineEvent, PipelineState } from "./types";
 import { fetchPR } from "../github/pr-fetcher";
-import { ClaudeAgent } from "../agents/claude-agent";
+import { ClaudeAgent, type ClaudeEffortLevel } from "../agents/claude-agent";
 import { buildReviewPrompt } from "../agents/prompts";
 import { runCrossValidation } from "./cross-validator";
 import { saveSession } from "../storage/store";
@@ -26,7 +26,7 @@ export class ReviewPipeline {
     }
   }
 
-  async run(prNumber: number, repo?: string): Promise<ReviewSession> {
+  async run(prNumber: number, repo?: string, options?: { claudeEffort?: ClaudeEffortLevel }): Promise<ReviewSession> {
     const sessionId = generateId();
     const repoName = repo ?? "local";
 
@@ -60,7 +60,7 @@ export class ReviewPipeline {
     this.emit({ type: "review-start", startedAt: Date.now(), agentName: "claude" });
     let review: AgentReview;
     try {
-      const claude = new ClaudeAgent();
+      const claude = new ClaudeAgent(options?.claudeEffort);
       const prompt = buildReviewPrompt(session.prData!);
       const startedAt = new Date().toISOString();
       const startMs = Date.now();

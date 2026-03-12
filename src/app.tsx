@@ -12,6 +12,8 @@ import { DiffView } from "./components/views/diff-view";
 import type { PRListItem, ReasoningStep, ReviewSession } from "./storage/types";
 import type { PipelineState } from "./pipeline/types";
 import { ReviewPipeline, reducePipelineState } from "./pipeline/review-pipeline";
+import { CommandInput } from "./components/layout/command-input";
+import { DEFAULT_CLAUDE_EFFORT, type ClaudeEffortLevel } from "./agents/claude-agent";
 
 interface AppProps {
   repo?: string;
@@ -25,6 +27,11 @@ export function App({ repo, initialPR }: AppProps) {
     status: "idle",
   });
   const pipelineRef = useRef<ReviewPipeline | null>(null);
+  const [claudeEffort, setClaudeEffort] = useState<ClaudeEffortLevel>(DEFAULT_CLAUDE_EFFORT as ClaudeEffortLevel);
+  const commandInputFocusedRef = useRef(false);
+  const setCommandInputFocused = useCallback((focused: boolean) => {
+    commandInputFocusedRef.current = focused;
+  }, []);
 
   const activeTab = TAB_OPTIONS[tabIndex]?.value ?? "prs";
 
@@ -49,11 +56,11 @@ export function App({ repo, initialPR }: AppProps) {
     setTabIndex(1); // Switch to Review tab
 
     try {
-      await pipeline.run(pr.number, repo);
+      await pipeline.run(pr.number, repo, { claudeEffort });
     } catch {
       // errors are handled via pipeline events
     }
-  }, [selectedPR, pipelineState.status, repo]);
+  }, [selectedPR, pipelineState.status, repo, claudeEffort]);
 
   const loadSession = useCallback((session: ReviewSession) => {
     const review = session.reviews[0];
@@ -82,7 +89,12 @@ export function App({ repo, initialPR }: AppProps) {
     setTabIndex(1); // Switch to Review tab
   }, []);
 
+  const handleEffortChange = useCallback((_provider: string, effort: ClaudeEffortLevel) => {
+    setClaudeEffort(effort);
+  }, []);
+
   useKeyboard((key) => {
+    if (commandInputFocusedRef.current) return;
     if (key.name === "q" && !key.ctrl && !key.meta) {
       process.exit(0);
     }
@@ -117,7 +129,7 @@ export function App({ repo, initialPR }: AppProps) {
           <PRListView repo={repo} onSelect={handlePRSelect} />
         )}
         {activeTab === "review" && (
-          <ReviewView state={pipelineState} selectedPR={selectedPR} />
+          <ReviewView state={pipelineState} selectedPR={selectedPR} claudeEffort={claudeEffort} />
         )}
         {activeTab === "diff" && (
           <DiffView
@@ -149,6 +161,12 @@ export function App({ repo, initialPR }: AppProps) {
         )}
         {activeTab === "history" && <HistoryView onSelect={loadSession} />}
       </box>
+
+      <CommandInput
+        claudeEffort={claudeEffort}
+        onEffortChange={handleEffortChange}
+        onFocusChange={setCommandInputFocused}
+      />
 
       <Footer activeTab={activeTab} pipelineState={pipelineState} />
     </box>

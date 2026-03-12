@@ -4,7 +4,7 @@ import type { PRListItem } from "../../storage/types";
 import { AgentBadge } from "../shared/agent-badge";
 import { AgreementIndicator } from "../shared/agreement-indicator";
 import { useElapsedTimer } from "../../hooks/use-elapsed-timer";
-import { CLAUDE_EFFORT } from "../../agents/claude-agent";
+import type { ClaudeEffortLevel } from "../../agents/claude-agent";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -15,6 +15,7 @@ function formatTokens(n: number): string {
 interface ReviewViewProps {
   state: PipelineState;
   selectedPR: PRListItem | null;
+  claudeEffort: ClaudeEffortLevel;
 }
 
 function StatusLine({
@@ -44,7 +45,7 @@ function StatusLine({
   );
 }
 
-export function ReviewView({ state, selectedPR }: ReviewViewProps) {
+export function ReviewView({ state, selectedPR, claudeEffort }: ReviewViewProps) {
   if (!selectedPR && state.status === "idle") {
     return (
       <box flexGrow={1} justifyContent="center" alignItems="center" flexDirection="column" gap={1}>
@@ -91,7 +92,7 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
             {state.streamProgress.model && (
               <text fg="#6B7280">{state.streamProgress.model}</text>
             )}
-            <text fg="#60A5FA">effort:{CLAUDE_EFFORT}</text>
+            <text fg="#60A5FA">effort:{claudeEffort}</text>
           </box>
 
           <box flexDirection="row" gap={2}>
@@ -160,7 +161,7 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
             <text fg="#9CA3AF">
               {(state.review.durationMs / 1000).toFixed(1)}s
             </text>
-            <text fg="#60A5FA">effort:{CLAUDE_EFFORT}</text>
+            <text fg="#60A5FA">effort:{claudeEffort}</text>
           </box>
 
           <text fg="#D1D5DB">{state.review.summary}</text>
