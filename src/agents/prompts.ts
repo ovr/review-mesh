@@ -171,6 +171,7 @@ export const CROSS_VALIDATION_JSON_SCHEMA = JSON.stringify({
           reasoning: { type: "string" },
         },
         required: ["stepRef", "agrees", "reasoning"],
+        additionalProperties: false,
       },
     },
     overallAgreement: { type: "number" },
@@ -190,7 +191,8 @@ export const CROSS_VALIDATION_JSON_SCHEMA = JSON.stringify({
           relatedFiles: { type: "array", items: { type: "string" } },
           severity: { type: "string" },
         },
-        required: ["stepNumber", "category", "title", "content", "relatedFiles"],
+        required: ["stepNumber", "category", "title", "content", "relatedFiles", "severity"],
+        additionalProperties: false,
       },
     },
     disagreements: { type: "array", items: { type: "string" } },
@@ -202,4 +204,5 @@ export const CROSS_VALIDATION_JSON_SCHEMA = JSON.stringify({
     "additionalFindings",
     "disagreements",
   ],
+  additionalProperties: false,
 });

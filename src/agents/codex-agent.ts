@@ -18,7 +18,7 @@ export class CodexAgent extends BaseAgent {
   }
 
   protected buildCommand(_prompt: string): string[] {
-    return ["codex", "exec", "--json", "--full-auto", "-m", "o4-mini"];
+    return ["codex", "exec", "--full-auto", "--ephemeral"];
   }
 
   protected parseOutput(raw: string): AgentResult {
@@ -49,27 +49,42 @@ export class CodexAgent extends BaseAgent {
       summary: parsed.summary ?? "",
       verdict: parsed.verdict ?? "comment",
       confidence: parsed.confidence ?? 0.5,
-      modelUsed: "o4-mini",
+      modelUsed: "codex",
     };
   }
 
   async crossValidate(prompt: string): Promise<CrossValidationResult> {
     const { spawnProcess } = await import("../utils/subprocess");
+    const { writeFileSync, unlinkSync } = await import("fs");
+    const { tmpdir } = await import("os");
+    const { join } = await import("path");
 
-    const result = await spawnProcess({
-      command: ["codex", "exec", "--json", "--full-auto", "-m", "o4-mini"],
-      stdin: prompt,
-      timeoutMs: this.config.timeoutMs ?? 300_000,
-      env: this.config.env,
-    });
+    const schemaPath = join(tmpdir(), `codex-schema-${Date.now()}.json`);
+    writeFileSync(schemaPath, CROSS_VALIDATION_JSON_SCHEMA);
 
-    if (result.exitCode !== 0) {
-      throw new Error(
-        `Codex cross-validation failed: ${result.stderr.slice(0, 500)}`,
-      );
+    try {
+      const result = await spawnProcess({
+        command: [
+          "codex", "exec",
+          "--full-auto",
+          "--output-schema", schemaPath,
+          "--ephemeral",
+        ],
+        stdin: prompt,
+        timeoutMs: this.config.timeoutMs ?? 300_000,
+        env: this.config.env,
+      });
+
+      if (result.exitCode !== 0) {
+        throw new Error(
+          `Codex cross-validation failed (exit ${result.exitCode}):\nstderr: ${result.stderr.slice(0, 2000)}\nstdout: ${result.stdout.slice(0, 500)}`,
+        );
+      }
+
+      return this.parseCrossValidationOutput(result.stdout);
+    } finally {
+      try { unlinkSync(schemaPath); } catch {}
     }
-
-    return this.parseCrossValidationOutput(result.stdout);
   }
 
   private parseCrossValidationOutput(raw: string): CrossValidationResult {
@@ -100,7 +115,7 @@ export class CodexAgent extends BaseAgent {
       additionalFindings: parsed.additionalFindings ?? [],
       disagreements: parsed.disagreements ?? [],
       rawOutput: raw,
-      modelUsed: "o4-mini",
+      modelUsed: "codex",
     };
   }
 }

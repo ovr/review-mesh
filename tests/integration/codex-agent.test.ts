@@ -13,7 +13,7 @@ import {
   MOCK_PR_DATA,
 } from "./codex-agent-fixtures";
 
-// --- Mock subprocess and logger ---
+// --- Mock subprocess, logger, and fs ---
 
 const spawnProcessMock = mock<(opts: any) => Promise<SpawnResult>>(() =>
   Promise.resolve({ stdout: "", stderr: "", exitCode: 0 }),
@@ -25,6 +25,16 @@ mock.module("../../src/utils/subprocess", () => ({
 
 mock.module("../../src/utils/logger", () => ({
   log: mock(() => Promise.resolve()),
+}));
+
+// Mock fs for crossValidate temp schema file
+const writeFileSyncMock = mock((_path: string, _data: string) => {});
+const unlinkSyncMock = mock((_path: string) => {});
+
+mock.module("fs", () => ({
+  ...require("fs"),
+  writeFileSync: writeFileSyncMock,
+  unlinkSync: unlinkSyncMock,
 }));
 
 // --- Testable subclass to expose protected methods ---
@@ -67,10 +77,8 @@ describe("CodexAgent", () => {
       expect(cmd).toEqual([
         "codex",
         "exec",
-        "--json",
         "--full-auto",
-        "-m",
-        "o4-mini",
+        "--ephemeral",
       ]);
     });
 
@@ -121,9 +129,9 @@ describe("CodexAgent", () => {
       );
     });
 
-    test("always sets modelUsed to o4-mini", () => {
+    test("always sets modelUsed to codex", () => {
       const result = agent.exposedParseOutput(VALID_REVIEW_JSON);
-      expect(result.modelUsed).toBe("o4-mini");
+      expect(result.modelUsed).toBe("codex");
     });
 
     test("preserves rawOutput", () => {
@@ -132,8 +140,13 @@ describe("CodexAgent", () => {
     });
   });
 
-  // 4. crossValidate (with mocked subprocess)
+  // 4. crossValidate (with mocked subprocess + fs)
   describe("crossValidate", () => {
+    beforeEach(() => {
+      writeFileSyncMock.mockClear();
+      unlinkSyncMock.mockClear();
+    });
+
     test("parses valid cross-validation JSON", async () => {
       spawnProcessMock.mockResolvedValueOnce({
         stdout: VALID_CROSS_VALIDATION_JSON,
@@ -188,7 +201,7 @@ describe("CodexAgent", () => {
 
     test("throws on non-zero exit code", async () => {
       spawnProcessMock.mockResolvedValueOnce({
-        stdout: "",
+        stdout: "some output",
         stderr: "codex: command failed",
         exitCode: 1,
       });
@@ -198,7 +211,7 @@ describe("CodexAgent", () => {
       );
     });
 
-    test("always sets modelUsed to o4-mini", async () => {
+    test("always sets modelUsed to codex", async () => {
       spawnProcessMock.mockResolvedValueOnce({
         stdout: VALID_CROSS_VALIDATION_JSON,
         stderr: "",
@@ -206,7 +219,7 @@ describe("CodexAgent", () => {
       });
 
       const result = await agent.crossValidate("test prompt");
-      expect(result.modelUsed).toBe("o4-mini");
+      expect(result.modelUsed).toBe("codex");
     });
 
     test("preserves rawOutput", async () => {
@@ -218,6 +231,32 @@ describe("CodexAgent", () => {
 
       const result = await agent.crossValidate("test prompt");
       expect(result.rawOutput).toBe(VALID_CROSS_VALIDATION_JSON);
+    });
+
+    test("passes --output-schema flag and writes schema to temp file", async () => {
+      spawnProcessMock.mockResolvedValueOnce({
+        stdout: VALID_CROSS_VALIDATION_JSON,
+        stderr: "",
+        exitCode: 0,
+      });
+
+      await agent.crossValidate("test prompt");
+      const callArgs = spawnProcessMock.mock.calls[0][0];
+      expect(callArgs.command).toContain("--output-schema");
+      expect(callArgs.command).toContain("--ephemeral");
+      expect(callArgs.command).not.toContain("--json");
+      expect(writeFileSyncMock).toHaveBeenCalledTimes(1);
+    });
+
+    test("cleans up schema temp file", async () => {
+      spawnProcessMock.mockResolvedValueOnce({
+        stdout: VALID_CROSS_VALIDATION_JSON,
+        stderr: "",
+        exitCode: 0,
+      });
+
+      await agent.crossValidate("test prompt");
+      expect(unlinkSyncMock).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -233,7 +272,7 @@ describe("CodexAgent", () => {
       const result = await agent.review(MOCK_PR_DATA, "review this PR");
       expect(result.verdict).toBe("request-changes");
       expect(result.confidence).toBe(0.85);
-      expect(result.modelUsed).toBe("o4-mini");
+      expect(result.modelUsed).toBe("codex");
       expect(spawnProcessMock).toHaveBeenCalledTimes(1);
     });
 
@@ -270,7 +309,7 @@ describe("CodexAgent real invocation", () => {
       expect(result).toHaveProperty("verdict");
       expect(result).toHaveProperty("confidence");
       expect(result).toHaveProperty("modelUsed");
-      expect(result.modelUsed).toBe("o4-mini");
+      expect(result.modelUsed).toBe("codex");
       expect(["approve", "request-changes", "comment"]).toContain(
         result.verdict,
       );
@@ -295,7 +334,7 @@ describe("CodexAgent real invocation", () => {
       expect(result).toHaveProperty("disagreements");
       expect(result).toHaveProperty("rawOutput");
       expect(result).toHaveProperty("modelUsed");
-      expect(result.modelUsed).toBe("o4-mini");
+      expect(result.modelUsed).toBe("codex");
       expect(["approve", "request-changes", "comment"]).toContain(
         result.validatorVerdict,
       );
