@@ -168,6 +168,19 @@ export async function fetchPR(
   return prData;
 }
 
+export async function getCurrentBranch(): Promise<string | undefined> {
+  try {
+    const result = await spawnProcess({
+      command: ["git", "rev-parse", "--abbrev-ref", "HEAD"],
+      timeoutMs: 5_000,
+    });
+    if (result.exitCode !== 0) return undefined;
+    return result.stdout.trim() || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function detectRepo(): string | undefined {
   // gh commands auto-detect repo from git remote, so undefined means "use current dir's repo"
   return undefined;

@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { useKeyboard } from "@opentui/react";
 import type { PRListItem } from "../../storage/types";
-import { listPRs } from "../../github/pr-fetcher";
+import { listPRs, getCurrentBranch } from "../../github/pr-fetcher";
 
 interface PRListViewProps {
   repo?: string;
@@ -11,6 +12,8 @@ export function PRListView({ repo, onSelect }: PRListViewProps) {
   const [prs, setPrs] = useState<PRListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [currentBranch, setCurrentBranch] = useState<string | undefined>();
+  const [focusedIndex, setFocusedIndex] = useState(0);
 
   useEffect(() => {
     loadPRs();
@@ -20,14 +23,34 @@ export function PRListView({ repo, onSelect }: PRListViewProps) {
     setLoading(true);
     setError(null);
     try {
-      const items = await listPRs(repo);
+      const [items, branch] = await Promise.all([
+        listPRs(repo),
+        getCurrentBranch(),
+      ]);
       setPrs(items);
+      setCurrentBranch(branch);
     } catch (err) {
       setError(String(err));
     } finally {
       setLoading(false);
     }
   }
+
+  useKeyboard(
+    useCallback(
+      (e) => {
+        if (prs.length === 0) return;
+        if (e.name === "up" || e.name === "k") {
+          setFocusedIndex((i) => Math.max(0, i - 1));
+        } else if (e.name === "down" || e.name === "j") {
+          setFocusedIndex((i) => Math.min(prs.length - 1, i + 1));
+        } else if (e.name === "return") {
+          if (prs[focusedIndex]) onSelect(prs[focusedIndex]);
+        }
+      },
+      [prs, focusedIndex, onSelect],
+    ),
+  );
 
   if (loading) {
     return (
@@ -54,28 +77,45 @@ export function PRListView({ repo, onSelect }: PRListViewProps) {
     );
   }
 
-  const options = prs.map((pr) => ({
-    name: `#${pr.number} ${pr.title}`,
-    description: `${pr.author} → ${pr.headRefName}${pr.isDraft ? " [DRAFT]" : ""}`,
-    value: pr,
-  }));
-
   return (
-    <select
-      focused
-      options={options}
-      width="100%"
-      flexGrow={1}
-      textColor="#E5E7EB"
-      focusedBackgroundColor="#374151"
-      focusedTextColor="#FFFFFF"
-      selectedBackgroundColor="#7C3AED"
-      selectedTextColor="#FFFFFF"
-      descriptionColor="#9CA3AF"
-      showDescription
-      onSelect={(index) => {
-        if (prs[index]) onSelect(prs[index]);
-      }}
-    />
+    <scrollbox focused flexGrow={1} width="100%" scrollY>
+      {prs.map((pr, index) => {
+        const isFocused = index === focusedIndex;
+        const isCurrent = pr.headRefName === currentBranch;
+
+        return (
+          <box
+            key={pr.number}
+            flexDirection="column"
+            width="100%"
+            paddingLeft={1}
+            paddingRight={1}
+            backgroundColor={isFocused ? "#374151" : undefined}
+          >
+            <box flexDirection="row" gap={1} alignItems="center">
+              <text
+                fg={isFocused ? "#FFFFFF" : "#E5E7EB"}
+                attributes={isFocused ? 1 : 0}
+              >
+                #{pr.number} {pr.title}
+              </text>
+              {pr.isDraft && (
+                <text fg="#000000" bg="#F59E0B" attributes={1}>
+                  {" DRAFT "}
+                </text>
+              )}
+              {isCurrent && (
+                <text fg="#000000" bg="#3B82F6" attributes={1}>
+                  {" Current Branch "}
+                </text>
+              )}
+            </box>
+            <text fg="#9CA3AF">
+              {pr.author} → {pr.headRefName}
+            </text>
+          </box>
+        );
+      })}
+    </scrollbox>
   );
 }
