@@ -12,6 +12,9 @@ import {
 import { spawnStreamingProcess } from "../utils/subprocess";
 import { log } from "../utils/logger";
 
+const CLAUDE_MODEL = "claude-opus-4-6";
+const CLAUDE_MAX_BUDGET_USD = "5.00";
+
 const CLAUDE_CONFIG: AgentConfig = {
   name: "claude",
   displayName: "Claude",
@@ -38,9 +41,9 @@ export class ClaudeAgent extends BaseAgent {
       "--json-schema",
       REVIEW_JSON_SCHEMA,
       "--max-budget-usd",
-      "0.50",
+      CLAUDE_MAX_BUDGET_USD,
       "--model",
-      "claude-sonnet-4-20250514",
+      CLAUDE_MODEL,
     ];
   }
 
@@ -61,7 +64,7 @@ export class ClaudeAgent extends BaseAgent {
             summary: content.summary ?? "",
             verdict: content.verdict ?? "comment",
             confidence: content.confidence ?? 0.5,
-            modelUsed: "claude-sonnet-4-20250514",
+            modelUsed: CLAUDE_MODEL,
           };
         }
       } catch {
@@ -89,7 +92,7 @@ export class ClaudeAgent extends BaseAgent {
       summary: content.summary ?? "",
       verdict: content.verdict ?? "comment",
       confidence: content.confidence ?? 0.5,
-      modelUsed: "claude-sonnet-4-20250514",
+      modelUsed: CLAUDE_MODEL,
     };
   }
 
@@ -149,7 +152,7 @@ export class ClaudeAgent extends BaseAgent {
         summary: content.summary ?? "",
         verdict: content.verdict ?? "comment",
         confidence: content.confidence ?? 0.5,
-        modelUsed: "claude-sonnet-4-20250514",
+        modelUsed: CLAUDE_MODEL,
       };
     }
 
@@ -167,9 +170,9 @@ export class ClaudeAgent extends BaseAgent {
       "--json-schema",
       CROSS_VALIDATION_JSON_SCHEMA,
       "--max-budget-usd",
-      "0.50",
+      CLAUDE_MAX_BUDGET_USD,
       "--model",
-      "claude-sonnet-4-20250514",
+      CLAUDE_MODEL,
     ];
   }
 
@@ -220,7 +223,7 @@ export class ClaudeAgent extends BaseAgent {
         additionalFindings: content.additionalFindings ?? [],
         disagreements: content.disagreements ?? [],
         rawOutput: result.stdout,
-        modelUsed: "claude-sonnet-4-20250514",
+        modelUsed: CLAUDE_MODEL,
       };
     }
 
@@ -244,7 +247,7 @@ export class ClaudeAgent extends BaseAgent {
             additionalFindings: content.additionalFindings ?? [],
             disagreements: content.disagreements ?? [],
             rawOutput: raw,
-            modelUsed: "claude-sonnet-4-20250514",
+            modelUsed: CLAUDE_MODEL,
           };
         }
       } catch {
@@ -271,7 +274,7 @@ export class ClaudeAgent extends BaseAgent {
       additionalFindings: content.additionalFindings ?? [],
       disagreements: content.disagreements ?? [],
       rawOutput: raw,
-      modelUsed: "claude-sonnet-4-20250514",
+      modelUsed: CLAUDE_MODEL,
     };
   }
 }
