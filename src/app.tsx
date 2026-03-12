@@ -8,6 +8,7 @@ import { ReviewView } from "./components/views/review-view";
 import { ReasoningChainView } from "./components/views/reasoning-chain-view";
 import { CrossValidationView } from "./components/views/cross-validation-view";
 import { HistoryView } from "./components/views/history-view";
+import { DiffView } from "./components/views/diff-view";
 import type { PRListItem, ReviewSession } from "./storage/types";
 import type { PipelineState } from "./pipeline/types";
 import { ReviewPipeline, reducePipelineState } from "./pipeline/review-pipeline";
@@ -88,6 +89,12 @@ export function App({ repo, initialPR }: AppProps) {
     if (key.name === "r" && !key.ctrl && !key.meta) {
       startReview();
     }
+    if (key.name === "left" && !key.ctrl && !key.meta) {
+      setTabIndex((prev) => (prev > 0 ? prev - 1 : TAB_OPTIONS.length - 1));
+    }
+    if (key.name === "right" && !key.ctrl && !key.meta) {
+      setTabIndex((prev) => (prev < TAB_OPTIONS.length - 1 ? prev + 1 : 0));
+    }
   });
 
   const handlePRSelect = useCallback((pr: PRListItem) => {
@@ -111,6 +118,9 @@ export function App({ repo, initialPR }: AppProps) {
         )}
         {activeTab === "review" && (
           <ReviewView state={pipelineState} selectedPR={selectedPR} />
+        )}
+        {activeTab === "diff" && (
+          <DiffView prData={pipelineState.prData} />
         )}
         {activeTab === "reasoning" && (
           <ReasoningChainView review={pipelineState.review} />

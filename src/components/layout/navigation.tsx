@@ -1,8 +1,10 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
+import type { TabSelectRenderable } from "@opentui/core";
 
 export const TAB_OPTIONS = [
   { name: "PRs", description: "Browse pull requests", value: "prs" },
   { name: "Review", description: "Review results", value: "review" },
+  { name: "Diff", description: "PR diff", value: "diff" },
   { name: "Reasoning", description: "Reasoning chain", value: "reasoning" },
   { name: "Validation", description: "Cross-validation", value: "validation" },
   { name: "History", description: "Past reviews", value: "history" },
@@ -14,8 +16,17 @@ interface NavigationProps {
 }
 
 export function Navigation({ selectedIndex, onTabChange }: NavigationProps) {
+  const tabRef = useRef<TabSelectRenderable>(null);
+
+  useEffect(() => {
+    if (tabRef.current && tabRef.current.getSelectedIndex() !== selectedIndex) {
+      tabRef.current.setSelectedIndex(selectedIndex);
+    }
+  }, [selectedIndex]);
+
   return (
     <tab-select
+      ref={tabRef}
       focused
       options={TAB_OPTIONS}
       selectedBackgroundColor="#7C3AED"

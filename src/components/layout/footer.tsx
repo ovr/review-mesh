@@ -32,6 +32,7 @@ export function Footer({ activeTab, pipelineState }: FooterProps) {
   const hints: Record<string, string> = {
     prs: "Enter:select  r:refresh  q:quit  ←→:tabs",
     review: "r:start review  q:quit  ←→:tabs",
+    diff: "↑↓:scroll  q:quit  ←→:tabs",
     reasoning: "↑↓:scroll  q:quit  ←→:tabs",
     validation: "↑↓:scroll  q:quit  ←→:tabs",
     history: "Enter:load  q:quit  ←→:tabs",
