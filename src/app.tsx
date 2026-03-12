@@ -9,7 +9,7 @@ import { ReasoningChainView } from "./components/views/reasoning-chain-view";
 import { CrossValidationView } from "./components/views/cross-validation-view";
 import { HistoryView } from "./components/views/history-view";
 import { DiffView } from "./components/views/diff-view";
-import type { PRListItem, ReviewSession } from "./storage/types";
+import type { PRListItem, ReasoningStep, ReviewSession } from "./storage/types";
 import type { PipelineState } from "./pipeline/types";
 import { ReviewPipeline, reducePipelineState } from "./pipeline/review-pipeline";
 
@@ -120,7 +120,23 @@ export function App({ repo, initialPR }: AppProps) {
           <ReviewView state={pipelineState} selectedPR={selectedPR} />
         )}
         {activeTab === "diff" && (
-          <DiffView prData={pipelineState.prData} />
+          <DiffView
+            prData={pipelineState.prData}
+            annotations={(() => {
+              const steps: ReasoningStep[] = [];
+              if (pipelineState.review?.reasoningChain) {
+                for (const s of pipelineState.review.reasoningChain) {
+                  if (s.codeLocations?.length) steps.push(s);
+                }
+              }
+              if (pipelineState.crossValidation?.additionalFindings) {
+                for (const s of pipelineState.crossValidation.additionalFindings) {
+                  if (s.codeLocations?.length) steps.push(s);
+                }
+              }
+              return steps.length > 0 ? steps : undefined;
+            })()}
+          />
         )}
         {activeTab === "reasoning" && (
           <ReasoningChainView review={pipelineState.review} />

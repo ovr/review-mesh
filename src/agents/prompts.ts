@@ -23,6 +23,9 @@ ${prData.diff}
 ## Instructions
 Provide a detailed code review with a structured reasoning chain. For each observation, analysis, concern, or suggestion, create a numbered step.
 
+For each finding, include specific code locations with line numbers from the diff.
+Use the line numbers from the new file side shown in diff hunk headers (@@ -old +new @@).
+
 Respond with valid JSON matching this schema:
 {
   "reasoningChain": [
@@ -32,7 +35,8 @@ Respond with valid JSON matching this schema:
       "title": "Short title",
       "content": "Detailed explanation",
       "relatedFiles": ["file1.ts"],
-      "severity": "info" | "warning" | "error" | "critical"
+      "severity": "info" | "warning" | "error" | "critical",
+      "codeLocations": [{ "file": "file1.ts", "startLine": 42, "endLine": 45 }]
     }
   ],
   "summary": "Overall review summary",
@@ -58,7 +62,8 @@ export function buildCrossValidationPrompt(
         `### Step ${step.stepNumber}: [${step.category}] ${step.title}
 ${step.content}
 Files: ${step.relatedFiles.join(", ") || "none"}
-Severity: ${step.severity ?? "info"}`,
+Severity: ${step.severity ?? "info"}
+Code locations: ${step.codeLocations?.map((loc) => `${loc.file}:${loc.startLine}${loc.endLine ? `-${loc.endLine}` : ""}`).join(", ") || "none"}`,
     )
     .join("\n\n");
 
@@ -84,6 +89,8 @@ ${stepsText}
 ## Instructions
 For EACH reasoning step above, determine if you agree or disagree based on the actual diff.
 Also identify anything the original reviewer missed.
+For any additional findings, include specific code locations with line numbers from the diff.
+Use the line numbers from the new file side shown in diff hunk headers (@@ -old +new @@).
 
 Respond with valid JSON matching this schema:
 {
@@ -103,7 +110,8 @@ Respond with valid JSON matching this schema:
       "title": "Missed issue",
       "content": "Description of what was missed",
       "relatedFiles": ["file.ts"],
-      "severity": "warning"
+      "severity": "warning",
+      "codeLocations": [{ "file": "file.ts", "startLine": 10, "endLine": 15 }]
     }
   ],
   "disagreements": ["Summary of key disagreements"]
@@ -111,6 +119,20 @@ Respond with valid JSON matching this schema:
 
 Be objective. The original reviewer may be correct — don't disagree just to be different.`;
 }
+
+const CODE_LOCATIONS_SCHEMA = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      file: { type: "string" },
+      startLine: { type: "number" },
+      endLine: { type: "number" },
+    },
+    required: ["file", "startLine", "endLine"],
+    additionalProperties: false,
+  },
+};
 
 export const REVIEW_JSON_SCHEMA = JSON.stringify({
   type: "object",
@@ -138,6 +160,7 @@ export const REVIEW_JSON_SCHEMA = JSON.stringify({
             type: "string",
             enum: ["info", "warning", "error", "critical"],
           },
+          codeLocations: CODE_LOCATIONS_SCHEMA,
         },
         required: [
           "stepNumber",
@@ -190,8 +213,9 @@ export const CROSS_VALIDATION_JSON_SCHEMA = JSON.stringify({
           content: { type: "string" },
           relatedFiles: { type: "array", items: { type: "string" } },
           severity: { type: "string" },
+          codeLocations: CODE_LOCATIONS_SCHEMA,
         },
-        required: ["stepNumber", "category", "title", "content", "relatedFiles", "severity"],
+        required: ["stepNumber", "category", "title", "content", "relatedFiles", "severity", "codeLocations"],
         additionalProperties: false,
       },
     },

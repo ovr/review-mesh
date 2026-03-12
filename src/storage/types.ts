@@ -39,6 +39,12 @@ export const PRDataSchema = z.object({
 
 // --- Reasoning & Review ---
 
+export const CodeLocationSchema = z.object({
+  file: z.string(),
+  startLine: z.number(),
+  endLine: z.number().optional(),
+});
+
 export const ReasoningStepSchema = z.object({
   stepNumber: z.number(),
   category: z.enum([
@@ -54,6 +60,7 @@ export const ReasoningStepSchema = z.object({
   severity: z
     .enum(["info", "warning", "error", "critical"])
     .optional(),
+  codeLocations: z.array(CodeLocationSchema).optional(),
 });
 
 export const AgentReviewSchema = z.object({
@@ -117,6 +124,7 @@ export type PRMetadata = z.infer<typeof PRMetadataSchema>;
 export type PRFile = z.infer<typeof PRFileSchema>;
 export type PRComment = z.infer<typeof PRCommentSchema>;
 export type PRData = z.infer<typeof PRDataSchema>;
+export type CodeLocation = z.infer<typeof CodeLocationSchema>;
 export type ReasoningStep = z.infer<typeof ReasoningStepSchema>;
 export type AgentReview = z.infer<typeof AgentReviewSchema>;
 export type CrossValidationItem = z.infer<typeof CrossValidationItemSchema>;

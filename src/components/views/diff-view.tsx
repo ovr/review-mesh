@@ -1,12 +1,13 @@
 import React from "react";
 import { DiffDisplay } from "../shared/diff-display";
-import type { PRData } from "../../storage/types";
+import type { PRData, ReasoningStep } from "../../storage/types";
 
 interface DiffViewProps {
   prData?: PRData;
+  annotations?: ReasoningStep[];
 }
 
-export function DiffView({ prData }: DiffViewProps) {
+export function DiffView({ prData, annotations }: DiffViewProps) {
   if (!prData) {
     return (
       <box flexGrow={1} justifyContent="center" alignItems="center">
@@ -17,7 +18,7 @@ export function DiffView({ prData }: DiffViewProps) {
 
   return (
     <scrollbox focused flexGrow={1} width="100%" scrollY>
-      <DiffDisplay diffContent={prData.diff} />
+      <DiffDisplay diffContent={prData.diff} annotations={annotations} />
     </scrollbox>
   );
 }

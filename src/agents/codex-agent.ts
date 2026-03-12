@@ -62,6 +62,11 @@ export class CodexAgent extends BaseAgent {
     const schemaPath = join(tmpdir(), `codex-schema-${Date.now()}.json`);
     writeFileSync(schemaPath, CROSS_VALIDATION_JSON_SCHEMA);
 
+    await log("info", "Starting codex cross-validation", {
+      schemaPath,
+      promptLength: prompt.length,
+    });
+
     try {
       const result = await spawnProcess({
         command: [
@@ -76,8 +81,10 @@ export class CodexAgent extends BaseAgent {
       });
 
       if (result.exitCode !== 0) {
+        // Codex echoes the full prompt to stderr, so the actual error is at the tail
+        const stderrTail = result.stderr.slice(-2000);
         throw new Error(
-          `Codex cross-validation failed (exit ${result.exitCode}):\nstderr: ${result.stderr.slice(0, 2000)}\nstdout: ${result.stdout.slice(0, 500)}`,
+          `Codex cross-validation failed (exit ${result.exitCode}):\nstderr (tail): ${stderrTail}\nstdout: ${result.stdout.slice(0, 500)}`,
         );
       }
 
