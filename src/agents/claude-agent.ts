@@ -14,6 +14,7 @@ import { log } from "../utils/logger";
 
 const CLAUDE_MODEL = "claude-opus-4-6";
 const CLAUDE_MAX_BUDGET_USD = "5.00";
+export const CLAUDE_EFFORT = "medium";
 
 const CLAUDE_CONFIG: AgentConfig = {
   name: "claude",
@@ -44,6 +45,8 @@ export class ClaudeAgent extends BaseAgent {
       CLAUDE_MAX_BUDGET_USD,
       "--model",
       CLAUDE_MODEL,
+      "--effort",
+      CLAUDE_EFFORT,
     ];
   }
 
@@ -173,6 +176,8 @@ export class ClaudeAgent extends BaseAgent {
       CLAUDE_MAX_BUDGET_USD,
       "--model",
       CLAUDE_MODEL,
+      "--effort",
+      CLAUDE_EFFORT,
     ];
   }
 

@@ -4,6 +4,7 @@ import type { PRListItem } from "../../storage/types";
 import { AgentBadge } from "../shared/agent-badge";
 import { AgreementIndicator } from "../shared/agreement-indicator";
 import { useElapsedTimer } from "../../hooks/use-elapsed-timer";
+import { CLAUDE_EFFORT } from "../../agents/claude-agent";
 
 function formatTokens(n: number): string {
   if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
@@ -90,6 +91,7 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
             {state.streamProgress.model && (
               <text fg="#6B7280">{state.streamProgress.model}</text>
             )}
+            <text fg="#60A5FA">effort:{CLAUDE_EFFORT}</text>
           </box>
 
           <box flexDirection="row" gap={2}>
@@ -158,6 +160,7 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
             <text fg="#9CA3AF">
               {(state.review.durationMs / 1000).toFixed(1)}s
             </text>
+            <text fg="#60A5FA">effort:{CLAUDE_EFFORT}</text>
           </box>
 
           <text fg="#D1D5DB">{state.review.summary}</text>
