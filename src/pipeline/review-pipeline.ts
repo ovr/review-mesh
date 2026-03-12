@@ -30,10 +30,10 @@ export class ReviewPipeline {
     const sessionId = generateId();
     const repoName = repo ?? "local";
 
-    this.emit({ type: "start", prNumber, repo });
+    this.emit({ type: "start", startedAt: Date.now(), prNumber, repo });
 
     // Step 1: Fetch PR data
-    this.emit({ type: "fetch-start" });
+    this.emit({ type: "fetch-start", startedAt: Date.now() });
     let session: ReviewSession;
     try {
       const prData = await fetchPR(prNumber, repo);
@@ -46,10 +46,10 @@ export class ReviewPipeline {
         prData,
         reviews: [],
       };
-      this.emit({ type: "fetch-complete", prData });
+      this.emit({ type: "fetch-complete", startedAt: Date.now(), prData });
     } catch (err) {
       const error = String(err);
-      this.emit({ type: "fetch-error", error });
+      this.emit({ type: "fetch-error", startedAt: Date.now(), error });
       throw err;
     }
 
@@ -57,7 +57,7 @@ export class ReviewPipeline {
     session.status = "reviewing";
     await saveSession(session);
 
-    this.emit({ type: "review-start", agentName: "claude" });
+    this.emit({ type: "review-start", startedAt: Date.now(), agentName: "claude" });
     let review: AgentReview;
     try {
       const claude = new ClaudeAgent();
@@ -80,13 +80,13 @@ export class ReviewPipeline {
         confidence: result.confidence,
       };
       session.reviews.push(review);
-      this.emit({ type: "review-complete", review });
+      this.emit({ type: "review-complete", startedAt: Date.now(), review });
     } catch (err) {
       const error = String(err);
       session.status = "error";
       session.error = error;
       await saveSession(session);
-      this.emit({ type: "review-error", error });
+      this.emit({ type: "review-error", startedAt: Date.now(), error });
       throw err;
     }
 
@@ -94,17 +94,17 @@ export class ReviewPipeline {
     session.status = "cross-validating";
     await saveSession(session);
 
-    this.emit({ type: "cross-validation-start", validatorAgent: "codex" });
+    this.emit({ type: "cross-validation-start", startedAt: Date.now(), validatorAgent: "codex" });
     try {
       const crossValidation = await runCrossValidation(review, session.prData!);
       session.crossValidation = crossValidation;
-      this.emit({ type: "cross-validation-complete", crossValidation });
+      this.emit({ type: "cross-validation-complete", startedAt: Date.now(), crossValidation });
     } catch (err) {
       const error = String(err);
       session.status = "error";
       session.error = error;
       await saveSession(session);
-      this.emit({ type: "cross-validation-error", error });
+      this.emit({ type: "cross-validation-error", startedAt: Date.now(), error });
       throw err;
     }
 
@@ -119,7 +119,7 @@ export class ReviewPipeline {
       crossValidationAgreement: session.crossValidation?.overallAgreement,
     });
 
-    this.emit({ type: "complete", session });
+    this.emit({ type: "complete", startedAt: Date.now(), session });
     return session;
   }
 }
@@ -136,31 +136,33 @@ export function reducePipelineState(
         repo: event.repo,
       };
     case "fetch-start":
-      return { ...state, status: "fetching" };
+      return { ...state, status: "fetching", fetchStartedAt: event.startedAt };
     case "fetch-complete":
-      return { ...state, prData: event.prData };
+      return { ...state, prData: event.prData, fetchCompletedAt: event.startedAt };
     case "fetch-error":
-      return { ...state, status: "error", error: event.error };
+      return { ...state, status: "error", error: event.error, fetchCompletedAt: event.startedAt };
     case "review-start":
-      return { ...state, status: "reviewing", currentAgent: event.agentName };
+      return { ...state, status: "reviewing", currentAgent: event.agentName, reviewStartedAt: event.startedAt };
     case "review-complete":
-      return { ...state, review: event.review, currentAgent: undefined };
+      return { ...state, review: event.review, currentAgent: undefined, reviewCompletedAt: event.startedAt };
     case "review-error":
-      return { ...state, status: "error", error: event.error };
+      return { ...state, status: "error", error: event.error, reviewCompletedAt: event.startedAt };
     case "cross-validation-start":
       return {
         ...state,
         status: "cross-validating",
         currentAgent: event.validatorAgent,
+        crossValidationStartedAt: event.startedAt,
       };
     case "cross-validation-complete":
       return {
         ...state,
         crossValidation: event.crossValidation,
         currentAgent: undefined,
+        crossValidationCompletedAt: event.startedAt,
       };
     case "cross-validation-error":
-      return { ...state, status: "error", error: event.error };
+      return { ...state, status: "error", error: event.error, crossValidationCompletedAt: event.startedAt };
     case "complete":
       return { ...state, status: "complete", session: event.session };
     case "error":

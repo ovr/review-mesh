@@ -3,19 +3,36 @@ import type { PipelineState } from "../../pipeline/types";
 import type { PRListItem } from "../../storage/types";
 import { AgentBadge } from "../shared/agent-badge";
 import { AgreementIndicator } from "../shared/agreement-indicator";
+import { useElapsedTimer } from "../../hooks/use-elapsed-timer";
 
 interface ReviewViewProps {
   state: PipelineState;
   selectedPR: PRListItem | null;
 }
 
-function StatusLine({ label, done, active }: { label: string; done: boolean; active: boolean }) {
+function StatusLine({
+  label,
+  done,
+  active,
+  startedAt,
+  completedAt,
+}: {
+  label: string;
+  done: boolean;
+  active: boolean;
+  startedAt?: number;
+  completedAt?: number;
+}) {
+  const elapsed = useElapsedTimer(startedAt, completedAt);
   const icon = done ? "✓" : active ? "⟳" : "○";
   const color = done ? "#10B981" : active ? "#F59E0B" : "#6B7280";
   return (
     <box flexDirection="row" gap={1} marginY={0}>
       <text fg={color}>{icon}</text>
       <text fg={done || active ? "#E5E7EB" : "#6B7280"}>{label}</text>
+      {elapsed && (
+        <text fg={done ? "#6B7280" : "#F59E0B"}>{elapsed}</text>
+      )}
     </box>
   );
 }
@@ -55,9 +72,9 @@ export function ReviewView({ state, selectedPR }: ReviewViewProps) {
 
       <box flexDirection="column" gap={0} marginBottom={1}>
         <text fg="#7C3AED" attributes={1} marginBottom={1}>Pipeline Progress</text>
-        <StatusLine label="Fetch PR data" done={fetchDone} active={isFetching} />
-        <StatusLine label="Primary review (Claude)" done={reviewDone} active={isReviewing} />
-        <StatusLine label="Cross-validation (Codex)" done={crossDone} active={isCrossValidating} />
+        <StatusLine label="Fetch PR data" done={fetchDone} active={isFetching} startedAt={state.fetchStartedAt} completedAt={state.fetchCompletedAt} />
+        <StatusLine label="Primary review (Claude)" done={reviewDone} active={isReviewing} startedAt={state.reviewStartedAt} completedAt={state.reviewCompletedAt} />
+        <StatusLine label="Cross-validation (Codex)" done={crossDone} active={isCrossValidating} startedAt={state.crossValidationStartedAt} completedAt={state.crossValidationCompletedAt} />
       </box>
 
       {isError && state.error && (

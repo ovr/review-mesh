@@ -9,18 +9,18 @@ export type PipelineStatus =
   | "error";
 
 export type PipelineEvent =
-  | { type: "start"; prNumber: number; repo?: string }
-  | { type: "fetch-start" }
-  | { type: "fetch-complete"; prData: PRData }
-  | { type: "fetch-error"; error: string }
-  | { type: "review-start"; agentName: string }
-  | { type: "review-complete"; review: AgentReview }
-  | { type: "review-error"; error: string }
-  | { type: "cross-validation-start"; validatorAgent: string }
-  | { type: "cross-validation-complete"; crossValidation: CrossValidation }
-  | { type: "cross-validation-error"; error: string }
-  | { type: "complete"; session: ReviewSession }
-  | { type: "error"; error: string };
+  | { type: "start"; startedAt: number; prNumber: number; repo?: string }
+  | { type: "fetch-start"; startedAt: number }
+  | { type: "fetch-complete"; startedAt: number; prData: PRData }
+  | { type: "fetch-error"; startedAt: number; error: string }
+  | { type: "review-start"; startedAt: number; agentName: string }
+  | { type: "review-complete"; startedAt: number; review: AgentReview }
+  | { type: "review-error"; startedAt: number; error: string }
+  | { type: "cross-validation-start"; startedAt: number; validatorAgent: string }
+  | { type: "cross-validation-complete"; startedAt: number; crossValidation: CrossValidation }
+  | { type: "cross-validation-error"; startedAt: number; error: string }
+  | { type: "complete"; startedAt: number; session: ReviewSession }
+  | { type: "error"; startedAt: number; error: string };
 
 export interface PipelineState {
   status: PipelineStatus;
@@ -32,4 +32,10 @@ export interface PipelineState {
   session?: ReviewSession;
   error?: string;
   currentAgent?: string;
+  fetchStartedAt?: number;
+  fetchCompletedAt?: number;
+  reviewStartedAt?: number;
+  reviewCompletedAt?: number;
+  crossValidationStartedAt?: number;
+  crossValidationCompletedAt?: number;
 }

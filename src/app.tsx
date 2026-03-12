@@ -124,7 +124,7 @@ export function App({ repo, initialPR }: AppProps) {
         {activeTab === "history" && <HistoryView onSelect={loadSession} />}
       </box>
 
-      <Footer activeTab={activeTab} />
+      <Footer activeTab={activeTab} pipelineState={pipelineState} />
     </box>
   );
 }
