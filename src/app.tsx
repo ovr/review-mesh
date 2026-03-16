@@ -120,9 +120,6 @@ export function App({ repo, initialPR }: AppProps) {
     if (key.name === "q" && !key.ctrl && !key.meta) {
       process.exit(0);
     }
-    if (key.name === "r" && !key.ctrl && !key.meta) {
-      startReview();
-    }
     if (key.name === "left" && !key.ctrl && !key.meta) {
       setTabIndex((prev) => (prev > 0 ? prev - 1 : TAB_OPTIONS.length - 1));
     }
@@ -157,6 +154,7 @@ export function App({ repo, initialPR }: AppProps) {
             selectedPR={selectedPR}
             claudeEffort={claudeEffort}
             discussionTopic={discussionTopic}
+            onRestart={startReview}
             onDiscussionClose={handleDiscussionClose}
             onDiscussionFocusChange={setCommandInputFocused}
           />

@@ -22,6 +22,7 @@ interface ReviewViewProps {
   selectedPR: PRListItem | null;
   claudeEffort: ClaudeEffortLevel;
   discussionTopic: DiscussionTopic | null;
+  onRestart: () => void;
   onDiscussionClose: () => void;
   onDiscussionFocusChange: (focused: boolean) => void;
 }
@@ -307,9 +308,21 @@ export function ReviewView({
   selectedPR,
   claudeEffort,
   discussionTopic,
+  onRestart,
   onDiscussionClose,
   onDiscussionFocusChange,
 }: ReviewViewProps) {
+  useKeyboard(
+    useCallback(
+      (key) => {
+        if (key.name === "r" && !key.ctrl && !key.meta) {
+          onRestart();
+        }
+      },
+      [onRestart],
+    ),
+  );
+
   if (discussionTopic && state.prData) {
     return (
       <DiscussionView
